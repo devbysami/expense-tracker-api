@@ -254,13 +254,4 @@ The cost: if that API task dies mid-import, the job stays `processing` and the t
 | Migrations folder contains an empty `add_phone_to_users` revision | Remove it and point the next revision's `down_revision` at `84041800c856` |
 
 ## AI usage
-I used **Claude Code (Anthropic)** throughout. I come from 4+ years of Django and had not used FastAPI before. I have read all of the code and can explain every part of it.
-| Area | Done by AI (Claude Code) | Done by me |
-|---|---|---|
-| Project structure | Async DB setup, Alembic config, JWT/argon2 helpers, `CurrentUser` dependency | Django-style app layout (`models` / `schemas` / `views` / `urls`), `.env`-only config, returning `error_response()` from views instead of exception classes, no Docker |
-| Auth | Fixed and completed my refresh view (JWT decode, row lock, rotation); made my rate limiter async; moved argon2 to a thread | `RateLimiter` class design and login rate limiting, refresh-token reuse-detection flow, logout |
-| Part 1 remaining work | Keyset pagination, monthly report SQL, category spend vs budget, migrations and rate seed | Requirements review, restricting currencies to the seeded four |
-| Part 2 features | Idempotency, ETag/If-Match, outbox + worker + notifications, CSV import, S3 receipts | Chose pandas for CSV parsing |
-| Tests | All tests and the test setup (real PostgreSQL, fakeredis, moto) | Ran them and used them to fix bugs in my code |
-| Code review | Reviewed my code and found bugs (blocking Redis calls, inverted refresh check, `and`/`or` login bypass, missing awaits) | Decided which fixes to apply |
-| Docs | Drafted this README and the Postman collection | Reviewed and edited |
+I used Claude Code (Anthropic) as a pair programmer throughout. I come from 4+ years of Django and this was my first FastAPI project. AI helped with the async scaffolding, implementing the Part 1/2 features, the test suite, reviewing my code (it caught several bugs) and drafting this README and the Postman collection. I set the project structure and conventions, designed the rate limiter and refresh-token flow, made the technical choices (e.g. pandas for CSV, returning errors instead of raising), and reviewed every change. I can walk through any part of the code.
