@@ -1,0 +1,8 @@
+[run]
+source = expense_tracker
+# SQLAlchemy's asyncio layer runs code inside greenlets; without this, coverage misses those lines.
+concurrency = greenlet, thread
+
+[report]
+show_missing = true
+skip_covered = true

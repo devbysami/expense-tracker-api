@@ -1,0 +1,5 @@
+date,amount,currency,category,description
+2026-10-01,1200.00,PKR,Food,Lunch
+2026-10-02,15.50,USD,Food,Coffee beans
+2026-10-03,0,PKR,Food,Zero amount (rejected)
+2026-10-04,40,AED,Unknown,Unknown category (rejected)
