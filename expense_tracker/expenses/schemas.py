@@ -32,7 +32,6 @@ class ExpenseOut(BaseModel):
     currency: str
     description: str
     spent_on: date
-    receipt_key: str | None
     version: int
     created_at: datetime
     updated_at: datetime
@@ -47,8 +46,7 @@ class ExpenseFilters(BaseModel):
     min_amount: Decimal | None = None
     max_amount: Decimal | None = None
     currency: Currency | None = None
-    q: str | None = Field(default=None, max_length=100)
-    cursor: str | None = None
+    cursor: str | None = None  # next_cursor from the previous page
     limit: int = Field(default=20, ge=1, le=100)
 
 

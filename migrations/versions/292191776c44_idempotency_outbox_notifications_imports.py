@@ -1,7 +1,7 @@
 """idempotency outbox notifications imports
 
 Revision ID: 292191776c44
-Revises: 0b07bfeda8dc
+Revises: 84041800c856
 Create Date: 2026-10-28 16:27:22.744581
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '292191776c44'
-down_revision: Union[str, Sequence[str], None] = '0b07bfeda8dc'
+down_revision: Union[str, Sequence[str], None] = '84041800c856'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

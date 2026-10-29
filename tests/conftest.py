@@ -7,22 +7,16 @@ from dotenv import dotenv_values
 # Real env vars win over .env (handy in CI).
 _env = dotenv_values(Path(__file__).resolve().parent.parent / ".env")
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or _env["TEST_DATABASE_URL"]
-# Fake credentials for the local moto S3 server: tests never talk to real AWS.
-os.environ.update(AWS_ACCESS_KEY_ID="testing", AWS_SECRET_ACCESS_KEY="testing", AWS_SESSION_TOKEN="testing")
 
-import socket  # noqa: E402
 from datetime import date  # noqa: E402
 from decimal import Decimal  # noqa: E402
 
-import boto3  # noqa: E402
 import fakeredis  # noqa: E402
 import pytest  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
-from moto.server import ThreadedMotoServer  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
 from core.redis_ops import get_redis  # noqa: E402
-from core.storage import Storage, get_storage  # noqa: E402
 from database import engine  # noqa: E402
 from main import app  # noqa: E402
 from models import Base  # noqa: E402
@@ -54,33 +48,6 @@ async def fake_redis():
     yield fake
     app.dependency_overrides.pop(get_redis, None)
     await fake.aclose()
-
-
-@pytest.fixture(scope="session")
-def s3_server():
-    """moto's S3 running as a local HTTP server, so the real aioboto3 code path is exercised."""
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    server = ThreadedMotoServer(ip_address="127.0.0.1", port=port, verbose=False)
-    server.start()
-    yield f"http://127.0.0.1:{port}"
-    server.stop()
-
-
-@pytest.fixture
-def storage(s3_server):
-    """Fresh bucket per test, injected into the app in place of the real S3 storage."""
-    s3 = boto3.client("s3", region_name="us-east-1", endpoint_url=s3_server)
-    bucket = "test-receipts"
-    s3.create_bucket(Bucket=bucket)
-    test_storage = Storage(bucket=bucket, region="us-east-1", endpoint_url=s3_server)
-    app.dependency_overrides[get_storage] = lambda: test_storage
-    yield test_storage
-    app.dependency_overrides.pop(get_storage, None)
-    for obj in s3.list_objects_v2(Bucket=bucket).get("Contents", []):
-        s3.delete_object(Bucket=bucket, Key=obj["Key"])
-    s3.delete_bucket(Bucket=bucket)
 
 
 @pytest.fixture

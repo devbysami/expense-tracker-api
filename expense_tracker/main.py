@@ -10,7 +10,6 @@ from core.utils import error_response
 from expenses.urls import router as expenses_router
 from imports.urls import router as imports_router
 from notifications.urls import router as notifications_router
-from receipts.urls import router as receipts_router
 from reports.urls import router as reports_router
 from users.urls import router as users_router
 
@@ -47,9 +46,8 @@ async def http_error_handler(request: Request, exc: HTTPException):
 api_v1 = APIRouter(prefix="/api/v1")
 api_v1.include_router(users_router)
 api_v1.include_router(categories_router)
-api_v1.include_router(imports_router)  # before expenses: "/expenses/import" must not match "/expenses/{id}"
+api_v1.include_router(imports_router)
 api_v1.include_router(expenses_router)
-api_v1.include_router(receipts_router)
 api_v1.include_router(notifications_router)
 api_v1.include_router(reports_router)
 

@@ -23,7 +23,8 @@ class TooManyRequests(Exception):
 
 # One shared Redis client per process, used by everything (views, RateLimiter, workers).
 # Nothing connects until the first command runs.
-conn = Redis.from_url(os.environ["REDIS_URL"], decode_responses=True)
+# protocol=2 (RESP2) works with every Redis version; redis-py's default RESP3 sends HELLO, which needs Redis 6+.
+conn = Redis.from_url(os.environ["REDIS_URL"], decode_responses=True, protocol=2)
 
 
 async def get_redis() -> Redis:

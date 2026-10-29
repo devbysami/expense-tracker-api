@@ -46,10 +46,12 @@ async def test_same_file_twice_creates_no_duplicates(client, auth_headers):
     await create_category(client, auth_headers, "Food")
     await create_category(client, auth_headers, "Travel")
     await upload(client, auth_headers, CSV)
-    second = (await upload(client, auth_headers, CSV, name="renamed.csv")).json()
+    second = (await upload(client, auth_headers, CSV)).json()
 
     job = (await client.get(f"/imports/{second['job_id']}", headers=auth_headers)).json()
     assert (job["rows_imported"], job["rows_duplicate"]) == (0, 3)
+    duplicates = [e["row"] for e in job["errors"] if e["error"].startswith("duplicate expense")]
+    assert duplicates == [2, 8, 9]  # the 3 good rows of CSV, each reported as a duplicate
     assert await count_expenses() == 3
 
 

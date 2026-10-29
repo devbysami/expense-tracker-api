@@ -27,7 +27,7 @@ class RefreshIn(BaseModel):
 
 
 class UserOut(BaseModel):
-    # from_attributes=True lets Pydantic read a SQLAlchemy object (like DRF ModelSerializer)
+    
     model_config = ConfigDict(from_attributes=True)
 
     id: int

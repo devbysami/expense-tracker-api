@@ -9,10 +9,10 @@ from database import Base
 
 class OutboxEvent(Base):
     """Transactional outbox: written in the SAME transaction as the change that caused it,
-    so an event exists if and only if the change was committed. The worker processes it later."""
+    so an event exists if and only if the change was committed. A background task (outbox/handlers.py::process_event) processes it after the commit."""
     __tablename__ = "outbox_events"
     __table_args__ = (
-        # The worker only ever looks at unprocessed rows, oldest first. Partial index = stays tiny.
+        # Pending (unprocessed) rows only. Partial index = stays tiny.
         Index("ix_outbox_events_pending", "id", postgresql_where=text("processed_at IS NULL")),
     )
 

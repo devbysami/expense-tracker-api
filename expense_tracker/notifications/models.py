@@ -10,7 +10,7 @@ class Notification(Base):
     __tablename__ = "notifications"
     __table_args__ = (
         # "Only once per category per month per level": the DB enforces it, so a re-processed
-        # event or a second worker just hits ON CONFLICT DO NOTHING.
+        # event or a second task just hits ON CONFLICT DO NOTHING.
         UniqueConstraint("user_id", "category_id", "month", "level", name="uq_notifications_once"),
         Index("ix_notifications_user_created", "user_id", "created_at"),  # GET /notifications
     )

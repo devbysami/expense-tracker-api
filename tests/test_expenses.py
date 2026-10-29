@@ -132,8 +132,6 @@ async def test_list_filters(client, auth_headers):
     assert await ids(date_from="2026-10-01", date_to="2026-10-04") == ["10.00"]
     assert await ids(min_amount="20", max_amount="100") == ["50.00"]
     assert await ids(currency="AED") == ["500.00"]
-    assert await ids(q="taxi") == ["500.00"]
-    assert await ids(q="100%") == ["10.00"]  # % is matched literally, not as a wildcard
 
 
 async def test_cursor_pagination_no_duplicates_or_gaps_while_rows_are_added(client, auth_headers):

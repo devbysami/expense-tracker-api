@@ -13,7 +13,6 @@ class ImportJob(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True)  # uuid4 hex, not guessable
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     filename: Mapped[str] = mapped_column(String(255))
-    file_sha256: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending/processing/completed/failed
     rows_done: Mapped[int] = mapped_column(Integer, default=0)  # rows read so far (good + bad)
     rows_imported: Mapped[int] = mapped_column(Integer, default=0)
