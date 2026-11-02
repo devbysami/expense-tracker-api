@@ -176,7 +176,7 @@ Table `idempotency_keys` with `UNIQUE (user_id, key)`, request hash, saved respo
 2. If a parallel request holds the key in an open transaction, Postgres makes this INSERT **wait** on the unique index until that transaction commits, then it conflicts → we read the saved response and replay it (or 422 if the body hash differs).
 3. Otherwise create the expense, save the response on the key row, commit everything together.
 
-Why only the DB: the key, the expense and the saved response commit atomically, so there is no window where the expense exists but the key doesn't (or the reverse). A Redis lock would add a second system that can't be committed together with Postgres, plus lock-expiry edge cases, and would still need the DB constraint as the real guarantee. Failed requests (e.g. category 404) roll back and don't burn the key. Keys expire after 24h: an expired key is deleted when it is reused (keys that are never reused stay in the table; see not finished).
+Why only the DB: the key, the expense and the saved response commit atomically, so there is no window where the expense exists but the key doesn't (or the reverse). A Redis lock would add a second system that can't be committed together with Postgres, plus lock-expiry edge cases, and would still need the DB constraint as the real guarantee. Failed requests (e.g. category 404) roll back and don't burn the key. Keys expire after 24h: an expired key is deleted when it is reused.
 
 ### 2.2 No lost updates
 `GET` returns `ETag: "<version>"`. `PATCH` requires `If-Match` (428 if missing, 400 if malformed) and runs one statement: `UPDATE … SET …, version = version + 1 WHERE id = :id AND user_id = :u AND version = :v RETURNING *`. No row → 404 if the expense isn't ours, else 412.
@@ -308,7 +308,7 @@ N+1: if each expense in the response showed its category name by touching `expen
 
 In my build there is no separate worker: each event is handled by a background task right after the request commits. The version of this problem I can actually hit is the API being killed (a deploy, a crash) after events were committed but before their tasks ran. Those events stay in `outbox_events` with `processed_at = NULL`. Nothing is lost, because they were written in the same transaction as the expenses.
 
-When something comes back to drain 500,000 pending events (a worker, or the periodic re-run job listed under "not finished"), the risk is that it hammers the database trying to catch up. What I'd do:
+When something comes back to drain 500,000 pending events (a worker, or a periodic job that re-runs pending events), the risk is that it hammers the database trying to catch up. What I'd do:
 - Work in fixed batches (about 100 events, one transaction each) and run one or two of them, not twenty. The number of workers is the throttle.
 - Claim batches with `FOR UPDATE SKIP LOCKED` so workers never fight over the same rows. The partial index on pending rows keeps "give me the next batch" cheap even with millions of processed rows in the table.
 - Coalesce. Most of those events say "check the budget for category X in month Y", and many are the same category-month. Running each distinct `(user, category, month)` once turns 500,000 SUM queries into a few thousand.
@@ -327,16 +327,10 @@ What I have still covers what matters: the client gets a 202 straight away, the 
 ## What is not finished
 | Item | How I would build it |
 |---|---|
-| CSV import runs in the API process (see short answer 5) | Store the upload in S3, let a separate job runner claim `pending` jobs with `SKIP LOCKED`, stream the object, mark stuck `processing` jobs as resumable via `import_key` |
 | Login rate limiter: `INCR` and `EXPIRE` are separate calls; parallel bad logins can all pass the check before any increment | One Redis pipeline / Lua script that does `INCR` + `EXPIRE NX` and returns the count, and decide from that atomic count |
 | Receipts on S3 (2.5): no AWS account to test against, and not enough time (see [2.5](#25-receipts-on-s3-not-done)) | Pre-signed POST upload, confirm with size + magic-byte check, 15-minute download URL, outbox-driven file cleanup, and a lifecycle rule for unconfirmed uploads |
 | Expenses dated before the oldest stored rate are left out of report totals (not guessed) | Fetch historical rates from a provider job, or fall back to the earliest rate and flag the row |
 | Exchange rates are a synthetic 90-day seed | Daily job pulling rates from a provider into `exchange_rates` |
-| Outbox events are processed only by the background task scheduled at commit; an event whose task never ran (process killed) or failed stays pending and nothing retries it automatically | A small periodic job that calls `process_event` for pending events older than a minute (`FOR UPDATE SKIP LOCKED` already makes parallel runs safe) |
-| Idempotency keys that are never reused are not cleaned up | Periodic `DELETE … WHERE created_at < now() - interval '24 hours'` (the `created_at` index is already there) |
-| Only create/list for categories (as specified) | `PATCH`/`DELETE /categories/{id}`; a budget change would emit a `budget.check` event |
-| Alerts are not retracted when a total drops | Product decision; could add a "back under budget" notification |
-| Postman collection was not run with newman in CI | `newman run postman/...` against a docker-compose stack in CI |
 
 ## Code review: bugs found and fixed
 The code review was done with AI (see below). These are the real problems it found in the code during the project and how each was fixed.
